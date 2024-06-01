@@ -1,6 +1,9 @@
 # work
 
-#创建收银系统，建立Customer，Brand，ProductType，Product，ProductProductType，Purchase表格，建立CustomerInformation，Productinfo，PurchaseInfo，Salesranking，BrandSales视图，通过插入信息进行记录，支持用户的查看
+#该系统可以为用户提供便捷高效的数据处理和管理功能，旨在帮助用户轻松管理销售和商品信息。通过该系统，您可以创建Customer（客户）、Brand（品牌）、ProductType（产品类型）、Product（产品）、ProductProductType（产品与产品类型关联），以及Purchase（购买）表格，建立CustomerInformation（客户信息）、Productinfo（产品信息）、PurchaseInfo（购买信息）、Salesranking（销售排名）、及BrandSales（品牌销售）视图。用户可以通过插入信息记录销售和商品数据，并方便地查看相关信息，从而更好地管理和分析销售业务。
+
+#The system provides users with convenient and efficient data processing and management functions, and is designed to help users easily manage sales and product information. With this system, you can create Customer, Brand, ProductType, Product, ProductProductType (product associated with product type), and Purchase tables, create CustomerInformation, Productinfo, PurchaseInfo, Salesranking, and BrandSales views. Users can record sales and product data by inserting information, and conveniently view relevant information to better manage and analyze sales operations.
+
 
 #运行MySQL的命令行客户端软件
 
