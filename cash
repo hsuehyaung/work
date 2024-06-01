@@ -1,0 +1,257 @@
+#创建库
+CREATE database cash character set utf8 collate utf8_general_ci;
+use cash;
+
+#顾客
+DROP TABLE IF EXISTS Customer;
+CREATE TABLE Customer (
+    CustomerID INT PRIMARY KEY,
+    CustomerName VARCHAR(20),
+    Phone VARCHAR(11),
+		LoyaltyPoints DECIMAL(10, 2),
+    JoinedLoyaltyProgram BOOLEAN
+);
+#插入顾客信息
+INSERT INTO Customer (CustomerID, CustomerName, Phone, LoyaltyPoints, JoinedLoyaltyProgram) 
+VALUES (001, '竹子', '12345600008', 0.00, TRUE),
+(002,'四四','12312312345',0.00,TRUE),
+(003,'小小','10988766554',0.00,TRUE);
+
+
+#品牌
+DROP TABLE IF EXISTS Brand;
+CREATE TABLE Brand (
+    BrandID INT PRIMARY KEY,
+    BrandName VARCHAR(50)
+);
+INSERT INTO Brand(BrandID,BrandName)
+VALUES (104,'百事可乐');
+INSERT INTO Brand(BrandID,BrandName)
+VALUES (105,'统一'),
+(106,'达利园'),
+(107,'康师傅'),
+(108,'飞鹤'),
+(109,'金龙鱼'),
+(110,'三全');
+
+
+#商品类型
+DROP TABLE IF EXISTS ProductType;
+CREATE TABLE ProductType (
+    ProductTypeID INT PRIMARY KEY,
+    TypeName VARCHAR(50)
+);
+INSERT INTO ProductType(ProductTypeID,TypeName)
+VALUES (4001,'饮料');
+INSERT INTO ProductType(ProductTypeID,TypeName)
+VALUES (4002,'零食'),
+(4003,'营养保健'),
+(4004,'粮油米面'),
+(4005,'生活服务'),
+(4006,'速冻食品');
+
+
+#商品
+DROP TABLE IF EXISTS Product;
+CREATE TABLE Product (
+    UPC INT PRIMARY KEY,
+    ProductName VARCHAR(60),
+    Price DECIMAL(10, 2),
+    Quantity INTEGER,
+    Sale INTEGER,
+    BrandID INTEGER,
+    CONSTRAINT CheckQuantity CHECK (Quantity >= 0),
+    FOREIGN KEY (BrandID) REFERENCES Brand(BrandID)
+);
+INSERT INTO Product (UPC, ProductName,Price,Quantity,Sale, BrandID)
+VALUES (6001, '可乐', 3.50,30,0, 104);
+INSERT INTO Product (UPC, ProductName,Price,Quantity,Sale, BrandID)
+VALUES (6002, '蛋黄派', 6.70, 10,0,106),
+(6003, '飞鹤奶粉', 180, 4,0,108),
+(6004, '方便面', 2.50, 30,0,107),
+(6005, '糕饼', 6.70, 15,0,107),
+(6006, '矿泉水', 2.00, 60,0,107),
+(6007, '冰红茶', 3, 25,0,106),
+(6008, '美年达', 3.5, 25,0,104),
+(6009, '乐事薯片', 8, 30,0,104),
+(6010, '食用油', 54, 5,0,109),
+(6011, '大米', 58.9, 5,0,109),
+(6012, '挂面', 18,20,0, 109),
+(6013, '三全水饺', 12.9, 12,0,110);
+
+#产品、类型对应
+DROP TABLE IF EXISTS ProductProductType;
+CREATE TABLE ProductProductType (
+    ProductID INT,
+    ProductTypeID INT,
+    PRIMARY KEY (ProductID, ProductTypeID),
+    FOREIGN KEY (ProductID) REFERENCES Product(UPC),
+    FOREIGN KEY (ProductTypeID) REFERENCES ProductType(ProductTypeID)
+);
+INSERT INTO ProductProductType (ProductID, ProductTypeID) 
+VALUES (6001, 4001),
+(6002, 4002),
+(6003, 4003),
+(6003, 4005),
+(6004, 4002),
+(6004, 4004),
+(6004, 4005),
+(6005, 4002),
+(6006, 4001),
+(6006, 4005),
+(6007, 4001),
+(6008, 4001),
+(6009, 4002),
+(6010, 4004),
+(6010, 4005),
+(6011, 4004),
+(6011, 4005),
+(6012, 4004),
+(6012, 4005),
+(6013, 4004),
+(6013, 4006);
+
+
+#购买
+DROP TABLE IF EXISTS Purchase;
+CREATE TABLE Purchase (
+    PurchaseID  INT PRIMARY KEY,
+    CustomerID INT,
+    UPC INT,
+    PurchaseDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    amount DECIMAL(10, 2),
+    FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID),
+    FOREIGN KEY (UPC) REFERENCES Product(UPC)
+);
+
+
+#输入编号得价格
+DELIMITER //
+CREATE TRIGGER fillPriceBeforeInsert BEFORE INSERT ON Purchase
+FOR EACH ROW
+BEGIN
+    DECLARE productPrice DECIMAL(10,2);
+
+    SELECT Price INTO productPrice
+    FROM Product
+    WHERE UPC = NEW.UPC;
+
+    SET NEW.amount = productPrice;
+END;
+//
+DELIMITER ;
+#积分自动转算
+DELIMITER //
+CREATE TRIGGER updateLoyaltyPoints AFTER INSERT ON Purchase
+FOR EACH ROW
+BEGIN
+    DECLARE pointsToAdd DECIMAL(10,2);
+
+    SELECT Price INTO pointsToAdd
+    FROM Product
+    WHERE UPC = NEW.UPC;
+
+    UPDATE Customer
+    SET LoyaltyPoints = LoyaltyPoints + pointsToAdd
+    WHERE CustomerID = NEW.CustomerID;
+END;
+//
+DELIMITER ;
+#商品减一
+CREATE TRIGGER update_product_quantity
+AFTER INSERT ON purchase
+FOR EACH ROW
+UPDATE Product
+SET Quantity = Quantity - 1
+WHERE UPC = NEW.UPC;
+#售出加一
+CREATE TRIGGER UpdateProductSalesTrigger
+AFTER INSERT ON Purchase
+FOR EACH ROW
+UPDATE Product
+SET Sale = Sale + 1
+WHERE UPC = NEW.UPC;
+
+
+#插入购买信息
+INSERT INTO Purchase (PurchaseID , CustomerID, UPC) 
+VALUES (101, 003, 6001 ),
+(102, 003, 6009 ),
+(103, 001, 6004 ),
+(104, 001, 6013 ),
+(105, 002, 6002 ),
+(106, 002, 6005 );
+
+
+#顾客视图
+DROP VIEW IF EXISTS CustomerInformation;
+CREATE VIEW CustomerInformation AS
+SELECT CustomerID, CustomerName, Phone, LoyaltyPoints, JoinedLoyaltyProgram
+FROM Customer;
+SELECT * FROM CustomerInformation;
+
+#商品信息视图
+DROP VIEW IF EXISTS Productinfo;
+CREATE VIEW Productinfo AS
+SELECT P.UPC, P.ProductName, P.Price,P.Quantity,P.Sale, B.BrandName, GROUP_CONCAT(PT.TypeName SEPARATOR ', ') AS TypeName
+FROM Product AS P
+JOIN Brand AS B ON P.BrandID = B.BrandID
+JOIN ProductProductType AS PPT ON P.UPC = PPT.ProductID
+JOIN ProductType AS PT ON PPT.ProductTypeID = PT.ProductTypeID
+GROUP BY P.UPC, P.ProductName, P.Price,P.Quantity,P.Sale, B.BrandName;
+SELECT * FROM Productinfo;
+
+
+#购买视图
+DROP VIEW IF EXISTS PurchaseInfo;
+CREATE VIEW PurchaseInfo AS
+SELECT PU.PurchaseID, P.ProductName, P.Price, B.BrandName, GROUP_CONCAT(PT.TypeName SEPARATOR ', ') AS TypeName, C.CustomerName,PU.PurchaseDate
+FROM Purchase AS PU
+JOIN Product AS P ON PU.UPC = P.UPC
+JOIN Brand AS B ON P.BrandID = B.BrandID
+JOIN ProductProductType AS PPT ON P.UPC = PPT.ProductID
+JOIN ProductType AS PT ON PPT.ProductTypeID = PT.ProductTypeID
+JOIN Customer AS C ON PU.CustomerID = C.CustomerID
+GROUP BY PU.PurchaseID, P.ProductName, P.Price, B.BrandName, C.CustomerName,PU.PurchaseDate;
+SELECT * FROM PurchaseInfo;
+
+
+#销售视图
+DROP VIEW IF EXISTS Salesranking;
+CREATE VIEW Salesranking AS
+SELECT p.UPC,p.ProductName,p.price,p.sale AS SalesQuantity,p.quantity AS RemainingQuantity
+FROM Product as p 
+ORDER BY SalesQuantity DESC;
+SELECT *
+FROM Salesranking;
+
+
+#品牌视图
+DROP VIEW IF EXISTS BrandSales;
+CREATE VIEW BrandSales AS
+SELECT p.BrandID,B.BrandName,
+       SUM(p.Sale * p.Price) AS TotalSales
+FROM Product p
+JOIN Brand AS B ON p.BrandID = B.BrandID
+GROUP BY p.BrandID,B.BrandName
+ORDER BY TotalSales DESC;
+SELECT *
+FROM BrandSales;
+
+
+#插入购买信息 
+INSERT INTO Purchase (PurchaseID , CustomerID, UPC) 
+VALUES (107, 003, 6001 ),
+(108, 003, 6009 ),
+(109, 001, 6001 ),
+(111, 002, 6003),
+(112, 002, 6003 ),
+(113, 002, 6003 );
+
+INSERT INTO Purchase (PurchaseID , CustomerID, UPC) 
+VALUES(114, 001, 6003 );
+
+INSERT INTO Product (UPC, ProductName,Price,Quantity,Sale, BrandID)
+VALUES (6014, '吐司面包', 14,30,0, 106);
+INSERT INTO ProductProductType (ProductID, ProductTypeID) 
+VALUES (6014, 4002);
