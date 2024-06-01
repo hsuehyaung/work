@@ -4,9 +4,9 @@
 
 #The system provides users with convenient and efficient data processing and management functions, and is designed to help users easily manage sales and product information. With this system, you can create Customer, Brand, ProductType, Product, ProductProductType (product associated with product type), and Purchase tables, create CustomerInformation, Productinfo, PurchaseInfo, Salesranking, and BrandSales views. Users can record sales and product data by inserting information, and conveniently view relevant information to better manage and analyze sales operations.
 
-#‘数据库’文件为系统设计信息文件，可以查看E-R、关系设计、解释等信息
+# ‘数据库’文件为系统设计信息文件，可以查看E-R、关系设计、解释等信息
 
-#运行MySQL的命令行客户端软件
+# 运行MySQL的命令行客户端软件
 
 #输入mysql相应passport
 
@@ -14,5 +14,4 @@
 
 
 #对不同表插入信息，查看视图可验证
-
 #SELECT * FROM PurchaseInfo;#查看购买信息
